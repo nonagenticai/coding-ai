@@ -18,10 +18,10 @@ import pytest
 # environments; tests use the legacy hardcoded values so existing substring
 # assertions (e.g. ":8688", ":8689", ":8691") still hold.
 _TEST_ENV_DEFAULTS = {
-    "REDIS_URL": "redis://redis.redis.svc.cluster.local:6379/0",
+    "REDIS_URL": "redis://localhost:6379/0",
     "CODING_CONTAINERS_URL": "http://coding-containers:8691",
-    "INFERENCE_ROUTER_URL": "http://inference-router.inference-router.svc.cluster.local:8150/api",
-    "LICENSE_INTROSPECT_URL": "http://licenses.licenses.svc.cluster.local:8544/license/introspect",
+    "INFERENCE_ROUTER_URL": "http://inference-router:8150/api",
+    "LICENSE_INTROSPECT_URL": "http://localhost:8544/license/introspect",
 }
 for _k, _v in _TEST_ENV_DEFAULTS.items():
     os.environ.setdefault(_k, _v)
