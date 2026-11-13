@@ -65,7 +65,7 @@ def _parse_args() -> argparse.Namespace:
         "--inference-router-url",
         default=os.getenv(
             "INFERENCE_ROUTER_URL",
-            "http://inference-router.inference-router.svc.cluster.local:8150/api",
+            "http://inference-router:8150/api",
         ),
         help=(
             "URL stored as base_url_override on each worker record. Ops can "

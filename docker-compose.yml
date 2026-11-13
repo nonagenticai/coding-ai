@@ -31,7 +31,7 @@ services:
 
       # Database
       DATABASE_URL: postgresql+psycopg://coding:${POSTGRES_PASSWORD:-coding}@postgres:5432/code_graph
-      PGBOUNCER_URL: postgresql+psycopg://coding:${POSTGRES_PASSWORD:-coding}@pgbouncer.pgbouncer.svc.cluster.local:6432/code_graph
+      PGBOUNCER_URL: postgresql+psycopg://coding:${POSTGRES_PASSWORD:-coding}@pgbouncer:6432/code_graph
 
       # Redis
       REDIS_URL: redis://code-graph-redis:6379/0

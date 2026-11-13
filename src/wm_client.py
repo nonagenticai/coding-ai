@@ -1,7 +1,7 @@
 """worker_management proxy client for LLM calls.
 
 coding-ai routes ALL LLM traffic through worker_management
-(``worker-management.workers.svc.cluster.local:8887``). coding-ai never
+(``worker-management:8887``). coding-ai never
 speaks to inference-router or any provider SDK directly — provider choice
 lives on each worker record in WM and is changed via ``PUT /workers/{name}``
 with no coding-ai redeploy.
