@@ -1,0 +1,49 @@
+name: CI
+
+# The public pipeline: nonagenticai/ci-workflows/python-service.yml on GitHub-hosted runners,
+# with no repository secrets, publishing ghcr.io/nonagenticai/coding-ai from main.
+#
+# There is no deploy job. Flux in gitops-production watches the ImagePolicy for this service and
+# rolls it when the image changes — the repo never holds cluster credentials.
+#
+# While this repository was private it ran the private gitops-production archetype; that job is
+# gone rather than gated because GitHub parses a called workflow even when the calling job's `if:`
+# is false, so a public repository that keeps a private `uses:` cannot dispatch CI at all.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: nonagenticai/ci-workflows/.github/workflows/python-service.yml@main
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image_name: coding-ai
+      src_dir: src
+      # 50 minutes, not the default: measured build+smoke durations on the private runners were
+      # 13-26 minutes, and a cancelled check reports as *pending* rather than red, so a tight cap
+      # can hide an undeployed fix behind a green-looking main.
+      build_timeout_minutes: 50
+      build_smoke: |
+        docker run -d --name smoke-coding-ai \
+          -e ENABLE_AUTH=false -e ENVIRONMENT=testing \
+          -e REDIS_URL=redis://localhost:6379/0 \
+          -p 18690:8690 "$IMAGE_REF"
+        ok=0
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:18690/health >/dev/null 2>&1; then
+            echo "health ok (attempt $i)"; ok=1; break
+          fi
+          sleep 1
+        done
+        docker logs smoke-coding-ai || true
+        docker rm -f smoke-coding-ai || true
+        [ "$ok" -eq 1 ]

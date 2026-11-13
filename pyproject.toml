@@ -1,0 +1,139 @@
+[project]
+name = "coding-ai"
+version = "1.0.0"
+license = { text = "Apache-2.0" }
+description = "AI-powered code analysis and test intelligence service for code_graph_helper"
+authors = [{name = "Nonagentic", email = "dev@nonagentic.ai"}]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.35.0",
+    "gunicorn>=23.0.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "httpx>=0.28.0",
+    "cachetools>=5.0.0",
+    "redis>=7.1.0",
+    "structlog>=24.4.0",
+    "sqlalchemy[asyncio]>=2.0",
+    "psycopg[binary,pool]>=3.2.0",
+    # >=1.11.0: auth.outbound gained `service_token=`, the on-behalf-of vouching
+    # arm. Without it this service can only assert a tenant via a bare
+    # X-Tenant-Id, which every callee stops honouring the moment
+    # TRUST_TENANT_HEADER flips to false. (>=1.9.0 brought: no "n8n-dev"
+    # fallback tenant, the TRUST_TENANT_HEADER gate, empty TRUSTED_CIDRS.)
+    # >=1.14.0 is a HARD floor, not a freshness bump: src/auth/tenant.py imports
+    # resolve_tenant_assertion, and 1.14.0 is the first release where that
+    # function itself records tenant_vouched / vouching_subject_id / license_id
+    # on request.state. Before 1.14.0 AuthMiddleware did that recording — and
+    # this service installs no AuthMiddleware, so on 1.11.0-1.13.0 every vouched
+    # call through require_tenant would carry no attribution at all.
+    # >=1.19.0 is a HARD floor: src/routers/ai_insights.py and
+    # src/routers/ai_test_insights/shared.py import CodingWorkspacesClient from
+    # coding_client.clients, and 1.19.0 is the first release that ships
+    # clients/coding_workspaces.py. On 1.17.0 the import is an ImportError at
+    # router-import time, i.e. the service does not start.
+    "coding-client>=1.19.5",
+    # AI-specific. Provider selection happens server-side in inference-router;
+    # coding-client.llm.BaseLLMAgent talks to it via an OpenAI-compatible
+    # endpoint, so the openai SDK + pydantic-ai stay as transitive runtime
+    # deps. anthropic/groq are no longer used directly.
+    # Floor raised to 1.99.0 for CVE-2026-46678 (no <1.99.0 builds permitted).
+    "pydantic-ai>=1.107.7,<2.0.0",
+    "openai>=1.0.0",
+    # OpenTelemetry
+    "opentelemetry-api>=1.24.0",
+    "opentelemetry-sdk>=1.24.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.24.0",
+    "opentelemetry-instrumentation-fastapi>=0.53b1",
+    # Security floor: pin pyasn1 ≥ 0.6.4 for PYSEC-2026-3455/3456/3457.
+    # Transitive (pyasn1-modules ← google-auth); floored here because the
+    # archetype's pip-audit gate is repo-scoped.
+    "pyasn1>=0.6.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff==0.15.14",
+    "ty==0.0.39",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff==0.15.14",
+    "detect-secrets",
+    "pip-audit>=2.10.0",
+    "ty==0.0.39",
+    # PYSEC-2026-3721: pip 26.1.2 is vulnerable (transitive via pip-audit -> pip-api -> pip); explicit floor so a re-lock cannot regress
+    "pip>=26.2",
+]
+
+[tool.uv]
+# Security constraints for transitive packages this service never imports directly,
+# kept at/above the patched release via a uv constraint (not a direct dependency):
+#  - aiohttp 3.14.1: CVE-2026-59881 / -69243 / -69244, fix 3.14.3
+#  - cryptography 49.0.0: CVE-2026-69247, fix 50.0.0
+# Freshly-published 2026 advisories, pre-existing on main (last main run 2026-07-30)
+# — the pip-audit gate went red fleet-wide, not because of the coding-client bump.
+constraint-dependencies = [
+    "aiohttp>=3.14.4",
+    "cryptography>=50.0.0",
+]
+
+# The shared library is consumed as a pinned git dependency (it is public), so no package
+# index beyond PyPI is involved — this resolves identically on a laptop, in CI and in the
+# Docker build.
+[tool.uv.sources]
+coding-client = { git = "https://github.com/nonagenticai/coding-client", rev = "f7f25b4e81fe4390586108a7a731608dacf462fd" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.ty]
+
+[tool.ty.src]
+include = ["src"]
+
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.rules]
+unresolved-import = "ignore"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-v --cov=src --cov-report=term-missing --cov-fail-under=85 -m 'not integration'"
+markers = [
+    "integration: marks tests as integration tests",
+]
+filterwarnings = [
+    "ignore::pytest.PytestCollectionWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+concurrency = ["greenlet", "thread"]
+
+[tool.coverage.report]
+fail_under = 85
