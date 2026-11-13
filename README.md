@@ -1,5 +1,9 @@
 # coding-ai
 
+[![CI](https://github.com/nonagenticai/coding-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/nonagenticai/coding-ai/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nonagenticai/coding-ai)](https://github.com/nonagenticai/coding-ai/releases)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 AI-powered code analysis and test intelligence microservice within the code_graph_helper platform. Provides three core capabilities: static code insight generation (architecture, security, performance, maintainability), test failure root-cause analysis with fix suggestions, and test suite health analysis with failure prediction. All operations are tenant-scoped and container-scoped. Uses PydanticAI agents with configurable provider chains (OpenAI, Anthropic, Groq).
 
 Port **8690**.
@@ -202,3 +206,19 @@ uv run uvicorn src.main:app --host 0.0.0.0 --port 8690 --reload
 GitHub Actions workflow: `ruff + ty → build amd64 → smoke test → push`
 
 Image pushed to `192.168.1.114:5000/coding-ai:sha-<commit>`, promoted to `:latest` on success. Flux auto-deploys to K3s.
+
+## Security
+
+Report vulnerabilities privately through the repository's Security tab — see
+[`SECURITY.md`](SECURITY.md). Do not open a public issue for a security problem.
+
+## Contributing
+
+Issues and pull requests are welcome. See
+[`CONTRIBUTING.md`](https://github.com/nonagenticai/.github/blob/main/CONTRIBUTING.md) for the
+organisation-wide rules; setup, test and lint commands are in this README. Commits carry DCO
+sign-off.
+
+## License
+
+Apache-2.0 — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
