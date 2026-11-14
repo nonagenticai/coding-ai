@@ -39,7 +39,7 @@ dependencies = [
     # endpoint, so the openai SDK + pydantic-ai stay as transitive runtime
     # deps. anthropic/groq are no longer used directly.
     # Floor raised to 1.99.0 for CVE-2026-46678 (no <1.99.0 builds permitted).
-    "pydantic-ai>=1.107.7,<2.0.0",
+    "pydantic-ai>=2.68.0,<3.0.0",
     "openai>=1.0.0",
     # OpenTelemetry
     "opentelemetry-api>=1.24.0",
@@ -97,7 +97,7 @@ constraint-dependencies = [
 # index beyond PyPI is involved — this resolves identically on a laptop, in CI and in the
 # Docker build.
 [tool.uv.sources]
-coding-client = { git = "https://github.com/nonagenticai/coding-client", rev = "f7f25b4e81fe4390586108a7a731608dacf462fd" }
+coding-client = { git = "https://github.com/nonagenticai/coding-client", rev = "0bbd6fcb3b4e407d199c9cce31d946c82fdb0887" }
 
 [tool.ruff]
 line-length = 100
