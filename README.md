@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/nonagenticai/coding-ai)](https://github.com/nonagenticai/coding-ai/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-AI-powered code analysis and test intelligence microservice within the code_graph_helper platform. Provides three core capabilities: static code insight generation (architecture, security, performance, maintainability), test failure root-cause analysis with fix suggestions, and test suite health analysis with failure prediction. All operations are tenant-scoped and container-scoped. Uses PydanticAI agents with configurable provider chains (OpenAI, Anthropic, Groq).
+AI-powered code analysis and test intelligence microservice within the code_graph_helper platform. Provides three core analysis capabilities: static code insight generation (architecture, security, performance, maintainability), test failure root-cause analysis with fix suggestions, and test suite health analysis with failure prediction. A fourth router group classifies code units into ArchiMate 3.2 types and proposes architecture mappings for a container. All operations are tenant-scoped and container-scoped. Uses PydanticAI agents with configurable provider chains (OpenAI, Anthropic, Groq).
 
 Port **8690**.
 
@@ -15,9 +15,10 @@ coding-ai (FastAPI, port 8690)
 ├── routers/
 │   ├── ai_insights         POST /analyze, GET /capabilities, GET /insight-types
 │   ├── ai_test_analysis    POST /failure-analysis, POST /batch-analyze, GET health, metrics, patterns
-│   └── ai_test_insights/   POST /analyze, /comprehensive-analysis, /predict-failures,
-│                            /recommendations, GET /analysis/{id}, /comprehensive-analysis/{id},
-│                            GET|PUT /settings
+│   ├── ai_test_insights/   POST /analyze, /comprehensive-analysis, /predict-failures,
+│   │                        /recommendations, GET /analysis/{id}, /comprehensive-analysis/{id},
+│   │                        GET|PUT /settings
+│   └── ai_architecture     POST /tools/classify-code-units, GET /proposals, GET /capabilities
 ├── services/
 │   ├── ai_insights/        Rule-based + optional LLM code insight engine (8 generators)
 │   ├── ai_failure_analysis AIFailureAnalysisService (PydanticAI, circuit breaker, caching)
@@ -28,13 +29,15 @@ coding-ai (FastAPI, port 8690)
 └── config/                 PydanticAI provider/agent configuration
 ```
 
-Three router groups are mounted at canonical prefixes and aliased at shorter `/api/ai/*` paths for gateway compatibility:
+Four router groups are mounted at canonical prefixes; three of them are also aliased at shorter
+`/api/ai/*` paths for gateway compatibility:
 
 | Canonical prefix | Alias prefix | Purpose |
 |---|---|---|
 | `/api/ai/insights/code` | `/api/ai` | Code insight generation |
 | `/api/ai/analysis/tests` | `/api/ai` | Test failure analysis |
 | `/api/ai/insights/tests` | (none) | Test suite insights |
+| `/api/ai/architecture` | `/api/ai` | ArchiMate-type classification, architecture proposals, classifier capabilities |
 
 ## Auth
 
@@ -118,8 +121,9 @@ Three PydanticAI agents are configured by default: `test_failure_analyzer` (prim
 | `ENABLE_AUTH` | `true` | Enable tenant authentication (read in main.py, not enforced in middleware) |
 | `DEFAULT_TENANT_ID` | *(unset)* | Tenant granted to a credential-less caller admitted by `TRUSTED_CIDRS`. **No default** -- unset means such callers are rejected, never handed an invented tenant. It used to default to `n8n-dev`, the stale pre-uuid7 *label* of a real tenant, so rows written under it landed in a silo no live JWT can address. |
 | `TRUST_TENANT_HEADER` | `true` | Whether the unverified `X-Tenant-Id` header may be believed. `false` ignores it (falls through to license introspection -- it is **not** downgraded to `DEFAULT_TENANT_ID`). |
-| `REDIS_URL` | `redis://code-graph-redis:6379/0` | Redis connection for caching |
-| `CODING_CONTAINERS_URL` | `http://coding-containers:8691` | coding-containers service URL (container validation) |
+| `REDIS_URL` | *(empty)* | Redis connection for caching. No code-side default; production injects it (required in production). |
+| `CODING_CONTAINERS_URL` | *(empty)* | coding-containers service URL (container validation). No code-side default; production injects it. |
+| `CODING_ANALYSIS_URL` | *(empty)* | coding-analysis service URL. Used by the architecture proposals route, which degrades to an empty `proposals[]` when unset or unreachable. |
 | `HTTP_CLIENT_TIMEOUT` | `30.0` | Default timeout for inter-service HTTP calls |
 | `TRUSTED_CIDRS` | *(empty)* | CIDRs admitted with NO credential and granted `DEFAULT_TENANT_ID`. An authentication bypass, so empty by default. |
 | `OTEL_SDK_DISABLED` | `true` | Set to `false` to enable OpenTelemetry tracing |
@@ -174,7 +178,8 @@ coding-ai/
 │   ├── routers/
 │   │   ├── ai_insights.py                Code insights endpoints (3 routes)
 │   │   ├── ai_test_analysis.py           Test failure analysis endpoints (5 routes)
-│   │   └── ai_test_insights/             Test suite insights package (8 routes)
+│   │   ├── ai_test_insights/             Test suite insights package (8 routes)
+│   │   └── ai_architecture.py            ArchiMate classification and architecture proposals (3 routes)
 │   ├── services/                         Business logic, AI engines
 │   └── utils/                            Response builders, helpers
 ├── tests/
@@ -203,14 +208,17 @@ uv run uvicorn src.main:app --host 0.0.0.0 --port 8690 --reload
 
 ## CI/CD
 
-GitHub Actions workflow: `ruff + ty → build amd64 → smoke test → push`
-
-Image pushed to `192.168.1.114:5000/coding-ai:sha-<commit>`, promoted to `:latest` on success. Flux auto-deploys to K3s.
+`.github/workflows/ci.yml` calls the public shared workflow
+`nonagenticai/ci-workflows/.github/workflows/python-service.yml` on GitHub-hosted runners:
+secret scan, private-reference scan, lint/format/type checks, unit tests, Docker build and smoke
+test. On `main` it publishes `ghcr.io/nonagenticai/coding-ai:sha-<7-char-commit>` and `:latest`.
+There is no deploy job and no cluster credential in this repository: Flux in `gitops-production`
+watches the GHCR ImagePolicy and rolls the workload when the image changes.
 
 ## Security
 
-Report vulnerabilities privately through the repository's Security tab — see
-[`SECURITY.md`](SECURITY.md). Do not open a public issue for a security problem.
+Report vulnerabilities privately through the repository's Security tab. Do not open a public
+issue for a security problem.
 
 ## Contributing
 
@@ -235,4 +243,4 @@ enforcement point). Neither is required to run this code.
 
 ## License
 
-Apache-2.0 — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+Apache-2.0 — see [`LICENSE`](LICENSE).
