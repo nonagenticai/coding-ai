@@ -38,8 +38,8 @@ try:
     HAS_PYDANTIC_AI = True
 except ImportError:
     HAS_PYDANTIC_AI = False
-    Agent = None  # type: ignore[misc, assignment]  # ty: ignore[invalid-assignment]
-    RunContext = None  # type: ignore[misc, assignment]  # ty: ignore[invalid-assignment]
+    Agent = None  # type: ignore[misc, assignment]
+    RunContext = None  # type: ignore[misc, assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +82,13 @@ class AITestInsightsService:
             self.pattern_agent = None
             self.recommendation_agent = None
             return
+
+        # The early return above is the only path on which the import failed, so past this
+        # point Agent is the real class. A type checker cannot follow that through the
+        # HAS_PYDANTIC_AI flag; this states the invariant instead of quietly widening the
+        # annotation. (pydantic-ai is a hard dependency since 1.22-era, so in practice the
+        # flag is never False in production.)
+        assert Agent is not None  # noqa: S101
 
         try:
             # Performance analysis agent

@@ -19,7 +19,7 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any
 
 from models.ai_test_failure_models import (
     AIAnalysisResult,
@@ -262,14 +262,14 @@ class AITestIntegrationService:
         """
         if not self.enable_ai_analysis or not self.ai_analysis_service:
             self.logger.warning("AI analysis is disabled or not available")
-            return cast(list[AIAnalysisResult | None], [None] * len(test_results))
+            return [None] * len(test_results)
 
         # Filter to only failed tests
         failed_tests = [(i, result) for i, result in enumerate(test_results) if not result.success]
 
         if not failed_tests:
             self.logger.info("No failed tests to analyze")
-            return cast(list[AIAnalysisResult | None], [None] * len(test_results))
+            return [None] * len(test_results)
 
         # Use service default if max_concurrent not specified
         if max_concurrent is None:
@@ -300,9 +300,7 @@ class AITestIntegrationService:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Create result list with proper indexing
-        analysis_results: list[AIAnalysisResult | None] = cast(
-            list[AIAnalysisResult | None], [None] * len(test_results)
-        )
+        analysis_results: list[AIAnalysisResult | None] = [None] * len(test_results)
 
         for result in results:
             if isinstance(result, BaseException):
