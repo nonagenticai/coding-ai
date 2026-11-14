@@ -762,7 +762,7 @@ async def health_check(
             }
 
         health_status = (
-            ai_service.get_health_status() if hasattr(ai_service, "get_health_status") else {}  # type: ignore[call-non-callable]  # ty: ignore[call-non-callable]
+            ai_service.get_health_status() if hasattr(ai_service, "get_health_status") else {}  # type: ignore[call-non-callable]  # ty: ignore[not-callable]
         )
 
         # `get_health_status()` reports `circuit_breaker_open` / `model_name`;
@@ -848,7 +848,7 @@ async def get_metrics(
                 "timestamp": datetime.now(UTC).isoformat(),
             }
 
-        metrics = ai_service.get_metrics() if hasattr(ai_service, "get_metrics") else {}  # type: ignore[call-non-callable]  # ty: ignore[call-non-callable]
+        metrics = ai_service.get_metrics() if hasattr(ai_service, "get_metrics") else {}  # type: ignore[call-non-callable]  # ty: ignore[not-callable]
 
         # The service tracks total/successful/failed analyses, cache hits and
         # average_analysis_time. It has never tracked `success_rate`,

@@ -1,5 +1,11 @@
 version: 2
 
+# Re-validated 2026-11-14: coding-client is consumed from git at an exact rev
+# (pyproject [tool.uv.sources]), and the pydantic-ai/openai ceilings that made every
+# proposed upgrade unsatisfiable were lifted in the same change. A dependabot.yml change is
+# what makes GitHub re-evaluate, so the record reflects the current graph rather than a job
+# created before it.
+
 # Dependabot replaces the org's private Renovate preset: a public repository cannot inherit a
 # preset hosted in a private one.
 updates:
