@@ -37,40 +37,40 @@ class APIValidationErrorDetail(BaseModel):
 
 class ValidationErrorResponse(StandardErrorResponse):
     message: str = Field(default="Request validation failed", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="VALIDATION_ERROR", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="VALIDATION_ERROR", pattern=SAFE_STRING_PATTERN)
     validation_errors: list[APIValidationErrorDetail] = Field(...)
 
 
 class Error400Response(StandardErrorResponse):
     message: str = Field(default="Bad request", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="BAD_REQUEST", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="BAD_REQUEST", pattern=SAFE_STRING_PATTERN)
 
 
 class Error401Response(StandardErrorResponse):
     message: str = Field(default="Authentication required", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="UNAUTHORIZED", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="UNAUTHORIZED", pattern=SAFE_STRING_PATTERN)
 
 
 class Error403Response(StandardErrorResponse):
     message: str = Field(default="Insufficient permissions", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="FORBIDDEN", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="FORBIDDEN", pattern=SAFE_STRING_PATTERN)
 
 
 class Error404Response(StandardErrorResponse):
     message: str = Field(default="Resource not found", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="NOT_FOUND", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="NOT_FOUND", pattern=SAFE_STRING_PATTERN)
 
 
 class Error500Response(StandardErrorResponse):
     message: str = Field(default="Internal server error", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="INTERNAL_ERROR", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="INTERNAL_ERROR", pattern=SAFE_STRING_PATTERN)
 
 
 class Error429Response(StandardErrorResponse):
     message: str = Field(default="Too many requests", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="RATE_LIMIT_EXCEEDED", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="RATE_LIMIT_EXCEEDED", pattern=SAFE_STRING_PATTERN)
 
 
 class Error503Response(StandardErrorResponse):
     message: str = Field(default="Service temporarily unavailable", pattern=SAFE_STRING_PATTERN)
-    error_code: str = Field(default="SERVICE_UNAVAILABLE", pattern=SAFE_STRING_PATTERN)
+    error_code: str | None = Field(default="SERVICE_UNAVAILABLE", pattern=SAFE_STRING_PATTERN)

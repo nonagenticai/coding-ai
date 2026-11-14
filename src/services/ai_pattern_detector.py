@@ -228,7 +228,7 @@ class AIPatternDetector:
                 pattern.associated_failures = []
             pattern.associated_failures.append(failure_data.failure_id)
 
-            if not pattern.pattern_type or pattern.pattern_type == "unknown":
+            if pattern.pattern_type == "unknown":
                 pattern.pattern_type = await self._classify_pattern_type(pattern, error_details)  # ty: ignore[invalid-assignment]
 
             pattern.pattern_signature = self._create_pattern_signature(

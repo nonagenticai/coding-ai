@@ -221,7 +221,7 @@ class TestReportFormatter:
                 for i, result in enumerate(results):
                     if i < len(analyzer_names) and not isinstance(result, Exception):
                         specialized_results[analyzer_names[i]] = (
-                            result.model_dump() if hasattr(result, "model_dump") else result  # type: ignore[call-non-callable]  # ty: ignore[call-non-callable]
+                            result.model_dump() if hasattr(result, "model_dump") else result  # type: ignore[call-non-callable]  # ty: ignore[not-callable]
                         )
 
             comprehensive_recommendations = None

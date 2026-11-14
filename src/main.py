@@ -1,7 +1,7 @@
 """FastAPI application entry point for coding-ai."""
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
@@ -56,7 +56,7 @@ def get_redis() -> aioredis.Redis | None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan events."""
     global _redis
     logger.info(f"Starting {SERVICE_NAME} v{VERSION} ({ENVIRONMENT})")
