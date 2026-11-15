@@ -6,7 +6,7 @@ API endpoints for AI-powered code analysis and intelligent insights generation.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+import os
 from typing import Any
 
 import httpx
@@ -26,6 +26,7 @@ from models.error_models import (
     Error400Response,
     Error404Response,
     Error500Response,
+    Error503Response,
     ValidationErrorResponse,
 )
 from services.ai_insights.base import (
@@ -44,6 +45,7 @@ from utils.responses import (
     bad_request,
     internal_error,
     not_found,
+    service_unavailable,
 )
 
 logger = logging.getLogger(__name__)
@@ -435,13 +437,71 @@ def _validate_focus_areas(focus_areas: list[str] | None) -> list[Any] | None:
     return [InsightType(area) for area in focus_areas]
 
 
+def _analysis_root_or_refuse() -> str:
+    """Return the normalised analysis root, or refuse the request.
+
+    ``AI_INSIGHTS_WORKSPACE_ROOT`` has NO fallback on purpose. An unset value
+    means this deployment has not been told which tree it may read, and every
+    guess (the process CWD, ``/workspace``, ``/``) would either vary with the
+    working directory or admit the whole filesystem. Refusing is the only
+    answer that cannot be widened by accident.
+
+    ``/`` is rejected explicitly: it is a valid realpath but not a containment
+    boundary, and the component-boundary check below would otherwise turn every
+    request into a confusing "files not found" instead of naming the fault.
+    """
+    configured = get_settings().ai_insights_workspace_root.strip()
+    if not configured:
+        raise service_unavailable(
+            "AI insights workspace root is not configured; refusing to read files."
+        )
+
+    root = os.path.realpath(configured)
+    if root == os.path.sep:
+        raise service_unavailable(
+            "AI insights workspace root must name a directory, not the filesystem root."
+        )
+    return root
+
+
 def _validate_file_paths(file_paths: list[str]) -> list[str]:
-    """Validate that file paths exist."""
+    """Return the existing files under the analysis root, normalised.
+
+    ``file_paths`` reaches this function straight from the request body (via
+    ``_resolve_container_files``), so every entry is attacker-controlled. A raw
+    ``Path(...).exists()`` therefore let a caller probe for — and then hand the
+    analysis engine — any file this pod can read: ``/etc/passwd``, ``../../``,
+    or a symlink planted inside the workspace pointing out of it.
+
+    Containment is enforced on ``os.path.realpath`` (symlinks resolved) and
+    requires the result to start with the root PLUS ``os.sep``. The separator
+    is the point: a string-prefix test would admit ``/srv/data-evil`` for root
+    ``/srv/data``, which is a sibling directory, not a child. CodeQL's
+    ``py/path-injection`` models exactly this shape (realpath normalisation,
+    then ``str.startswith`` on the normalised value) as a safe access check.
+
+    The NORMALISED path is what is returned and therefore what the engine opens
+    — not the caller's string. A rejected entry is only ever logged; it is
+    never stat'd, opened, or echoed back with its existence confirmed.
+    """
+    root = _analysis_root_or_refuse()
+    root_prefix = root + os.sep
+
     valid_files = []
     for file_path_str in file_paths:
-        file_path_obj = Path(file_path_str)
-        if file_path_obj.exists():
-            valid_files.append(str(file_path_obj))
+        try:
+            candidate = os.path.realpath(file_path_str)
+        except (OSError, ValueError):
+            # NUL bytes and other unrepresentable paths raise rather than
+            # returning a normalised value; they cannot be legitimate targets.
+            logger.warning("Ignoring unrepresentable analysis path: %r", file_path_str)
+            continue
+
+        if not candidate.startswith(root_prefix):
+            logger.warning("Refusing path outside the analysis root: %r", file_path_str)
+            continue
+        if os.path.isfile(candidate):
+            valid_files.append(candidate)
         else:
             logger.warning("File not found: %s", file_path_str)
 
@@ -519,6 +579,10 @@ def _convert_insights_to_model(
         400: {"model": Error400Response, "description": "Bad request"},
         422: {"model": ValidationErrorResponse, "description": "Validation error"},
         500: {"model": Error500Response, "description": "Internal server error"},
+        503: {
+            "model": Error503Response,
+            "description": "Analysis root not configured; refusing to read files",
+        },
     },
 )
 async def analyze_insights(

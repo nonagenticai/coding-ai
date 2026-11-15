@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -391,33 +392,42 @@ def test_validate_focus_areas_invalid():
 
 
 # ---------------------------------------------------------------------------
-# _validate_file_paths  (lines 265-276)
+# _validate_file_paths  (containment tests live in
+# test_ai_insights_path_containment.py; these keep the basic contract)
 # ---------------------------------------------------------------------------
-def test_validate_file_paths_all_exist(tmp_path):
+def test_validate_file_paths_all_exist(tmp_path, monkeypatch):
+    from config.settings import get_settings
     from routers.ai_insights import _validate_file_paths
 
+    monkeypatch.setenv("AI_INSIGHTS_WORKSPACE_ROOT", str(tmp_path))
+    get_settings.cache_clear()
     f = tmp_path / "test.py"
     f.write_text("x=1")
     result = _validate_file_paths([str(f)])
-    assert len(result) == 1
+    assert result == [os.path.realpath(f)]
 
 
-def test_validate_file_paths_none_exist():
+def test_validate_file_paths_none_exist(tmp_path, monkeypatch):
+    from config.settings import get_settings
     from routers.ai_insights import _validate_file_paths
 
+    monkeypatch.setenv("AI_INSIGHTS_WORKSPACE_ROOT", str(tmp_path))
+    get_settings.cache_clear()
     with pytest.raises(HTTPException) as exc_info:
-        _validate_file_paths(["/nonexistent/file.py"])
+        _validate_file_paths([str(tmp_path / "missing.py")])
     assert exc_info.value.status_code == 404
 
 
-def test_validate_file_paths_mixed(tmp_path):
+def test_validate_file_paths_mixed(tmp_path, monkeypatch):
+    from config.settings import get_settings
     from routers.ai_insights import _validate_file_paths
 
+    monkeypatch.setenv("AI_INSIGHTS_WORKSPACE_ROOT", str(tmp_path))
+    get_settings.cache_clear()
     f = tmp_path / "exists.py"
     f.write_text("x=1")
-    result = _validate_file_paths([str(f), "/no/such/file.py"])
-    assert len(result) == 1
-    assert str(f) in result[0]
+    result = _validate_file_paths([str(f), str(tmp_path / "no-such-file.py")])
+    assert result == [os.path.realpath(f)]
 
 
 # ---------------------------------------------------------------------------

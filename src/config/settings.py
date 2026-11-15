@@ -98,6 +98,19 @@ class Settings(BaseMicroserviceSettings):
     # ``proposals[]`` (200) when unset or unreachable rather than 5xx.
     coding_analysis_url: str = Field(default="")
 
+    # Local read root for the AI insights engine. ``POST
+    # /api/ai/insights/code/analyze`` accepts caller-supplied ``file_paths``, so
+    # every path is realpath-normalised and confined to this root before any
+    # file operation (see routers.ai_insights._validate_file_paths).
+    #
+    # NO default. Empty means "not configured", and the endpoint refuses
+    # explicit paths rather than falling back to the process CWD, "/", or the
+    # container-side WORKSPACE_ROOT. That constant names a directory inside a
+    # coding-containers workspace pod; it is not a boundary this pod can rely
+    # on. Set AI_INSIGHTS_WORKSPACE_ROOT in gitops only where a local checkout
+    # is actually mounted.
+    ai_insights_workspace_root: str = Field(default="")
+
     # worker_management proxy. Once the make_agent_runner sites are migrated
     # this is the only LLM destination coding-ai needs to know about; the
     # provider (inference_router today, anthropic / vllm / etc tomorrow) lives
